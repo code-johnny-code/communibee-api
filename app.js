@@ -8,6 +8,13 @@ app.use( bodyParser.json() );       // to support JSON-encoded bodies
 app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
   extended: true
 }));
+app.use(function (req, res, next) {
+  if (req.headers.authorization === process.env.API_KEY) {
+    next()
+  } else {
+    res.send({'error': 'Unauthorized'})
+  }
+});
 
 app.get('/', (req, res) => res.send('Hello World!'));
 

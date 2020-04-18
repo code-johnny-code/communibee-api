@@ -30,4 +30,4 @@ app.post('/updateHive', (req, res) => {
   Mongo.updateHive(req.body, (results) => res.send(results))
 });
 
-app.listen(port, () => console.log(`Example app listening at http://localhost:${port}`));
+app.listen(process.env.PORT || 5000, () => console.log(`Example app listening at http://localhost:${port}`));

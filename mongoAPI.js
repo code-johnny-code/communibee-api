@@ -26,7 +26,7 @@ module.exports = {
     client.connect(() => {
       const db = client.db(dbName);
       const collection = db.collection('hives');
-      return collection.insertOne({userId: data.userId, hiveName: data.deviceId, coordinates: {latitude: data.lat, longitude: data.lon}, issues: []},
+      return collection.insertOne({userId: data.userId, hiveName: data.hiveName, coordinates: {latitude: data.lat, longitude: data.lon}, issues: []},
         function (error, res) {
           if (error) {
             response({'error': res});

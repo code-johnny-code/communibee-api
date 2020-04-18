@@ -26,7 +26,7 @@ module.exports = {
     client.connect(() => {
       const db = client.db(dbName);
       const collection = db.collection('hives');
-      return collection.insertOne({userId: data.userId, hiveName: data.hiveName, coordinates: {latitude: data.lat, longitude: data.lon}, issues: []},
+      collection.insertOne({userId: data.userId, geojson: data.geojson, issues: []},
         function (error, res) {
           if (error) {
             response({'error': res});
@@ -49,5 +49,18 @@ module.exports = {
           }
         })
     })
+  },
+  getHives(data, response) {
+    return client.connect(() => {
+      const db = client.db(dbName);
+      const collection = db.collection('hives');
+      collection.find().toArray(function(err, items) {
+        if (err) {
+          response({'error': err});
+        } else {
+          response(items);
+        }
+      });
+    });
   }
 };

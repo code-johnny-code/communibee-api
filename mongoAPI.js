@@ -7,6 +7,25 @@ const client = new MongoClient(process.env.DB_URL, { useNewUrlParser: true, auth
   }});
 const dbName = process.env.DB_NAME;
 
+const makeGeoJSON = (name, lat, long) => {
+  return {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {"name": name},
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            long,
+            lat
+          ]
+        }
+      }
+    ]
+  }
+};
+
 module.exports = {
   registerNewUser(data, response) {
     client.connect(() => {
@@ -26,7 +45,12 @@ module.exports = {
     client.connect(() => {
       const db = client.db(dbName);
       const collection = db.collection('hives');
-      collection.insertOne({userId: data.userId, geojson: data.geojson, issues: []},
+      const recordToSave = {
+        userId: data.userId,
+        geojson: makeGeoJSON(data.name, data.lat, data.long),
+        issues: []
+      };
+      collection.insertOne(recordToSave,
         function (error, res) {
           if (error) {
             response({'error': res});

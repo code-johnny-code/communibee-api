@@ -1,5 +1,5 @@
 require('dotenv').config();
-
+const { v4: uuidv4 } = require('uuid');
 const MongoClient = require('mongodb').MongoClient;
 const client = new MongoClient(process.env.DB_URL, { useNewUrlParser: true, auth: {
     user: process.env.DB_USER,
@@ -13,7 +13,7 @@ const makeGeoJSON = (name, lat, long) => {
     "features": [
       {
         "type": "Feature",
-        "properties": {"name": name},
+        "properties": {"name": name, "hiveId": uuidv4()},
         "geometry": {
           "type": "Point",
           "coordinates": [
@@ -62,9 +62,10 @@ module.exports = {
   },
   updateHive(data, response) {
     client.connect(() => {
+      const {hiveId} = data;
       const db = client.db(dbName);
       const collection = db.collection('hives');
-      return collection.findOneAndUpdate({},
+      return collection.findOneAndUpdate({hiveId: hiveId},
         function (error, res) {
           if (error) {
             response({'error': res});

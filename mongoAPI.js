@@ -1,4 +1,5 @@
 require('dotenv').config();
+const h3 = require("h3-js");
 const { v4: uuidv4 } = require('uuid');
 const MongoClient = require('mongodb').MongoClient;
 const client = new MongoClient(process.env.DB_URL, { useNewUrlParser: true, auth: {
@@ -45,9 +46,12 @@ module.exports = {
     client.connect(() => {
       const db = client.db(dbName);
       const collection = db.collection('hives');
+      const h3Cell = h3.geoToH3(data.lat, data.long, 6);
       const recordToSave = {
         userId: data.userId,
         geojson: makeGeoJSON(data.name, data.lat, data.long),
+        h3: h3Cell,
+        h3Geom: h3.h3ToGeoBoundary(h3Cell, true),
         issues: []
       };
       collection.insertOne(recordToSave,

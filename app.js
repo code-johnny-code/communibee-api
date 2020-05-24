@@ -23,8 +23,17 @@ app.get('/', (req, res) => res.send('Hello World!'));
 app.get('/apiaries', (req, res) => {
   Mongo.getApiaries(req, (results) => res.send(results))
 });
+
 app.post('/addUser', (req, res) => {
   Mongo.addUser(req.body, (results) => res.send(results))
+});
+
+app.get('/getUserInfo', (req, res) => {
+  Mongo.getUserInfo(req, (results) => res.send(results))
+});
+
+app.post('/addSwarmRetrievalZones', (req, res) => {
+  Mongo.addSwarmRetrievalZones(req.body, (results) => res.send(results))
 });
 
 app.post('/addApiary', (req, res) => {
@@ -53,6 +62,10 @@ app.post('/claimSwarm', (req, res) => {
 
 app.post('/unclaimSwarm', (req, res) => {
   Mongo.unclaimSwarm(req.body, (results) => res.send(results))
+});
+
+app.post('/swarmRetrieved', (req, res) => {
+  Mongo.swarmRetrieved(req.body, (results) => res.send(results))
 });
 
 app.listen(process.env.PORT || 5000, () => console.log(`Example app listening at http://localhost:${port}`));

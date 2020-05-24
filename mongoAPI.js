@@ -19,6 +19,7 @@ module.exports = {
           userId: uuidv4(),
           name: name,
           email: email,
+          swarmRetriever: false,
           joined: Date.now(),
         },
         function (error, res) {
@@ -28,6 +29,21 @@ module.exports = {
             response(res);
           }
         })
+    })
+  },
+  getUserInfo(data, response) {
+    // { userId: 'e0c66481-9f4c-4c0c-b7d0-d9d1ba7b455f' }
+    const {userId} = data.query;
+    return client.connect(() => {
+      const db = client.db(dbName);
+      const collection = db.collection('users');
+      collection.findOne({userId}, (error, res) => {
+        if (error) {
+          response({'error': res});
+        } else {
+          response(res);
+        }
+      })
     })
   },
   addApiary(data, response) {
@@ -118,6 +134,7 @@ module.exports = {
         distanceFromGround: distanceFromGround,
         contactInfo: contactInfo,
         claimed: false,
+        retrieved: false,
       };
       collection.insertOne(recordToSave,
         function (error, res) {
@@ -133,7 +150,7 @@ module.exports = {
     return client.connect(() => {
       const db = client.db(dbName);
       const collection = db.collection('swarms');
-      collection.find().toArray(function(err, items) {
+      collection.find({retrieved: false}).toArray(function(err, items) {
         if (err) {
           response({'error': err});
         } else {
@@ -162,12 +179,44 @@ module.exports = {
     })
   },
   unclaimSwarm(data, response) {
-    // { swarmId: '1198acc3-c861-41a3-8ea3-6a06e0ca530c' }
-    const {swarmId, userId} = data;
+    // { userId: 'e0c66481-9f4c-4c0c-b7d0-d9d1ba7b455f', swarmId: '1198acc3-c861-41a3-8ea3-6a06e0ca530c' }
+    const {userId, swarmId} = data;
     return client.connect(() => {
       const db = client.db(dbName);
       const collection = db.collection('swarms');
-      collection.findOneAndUpdate({swarmId}, {$set: {claimed: false, claimedBy: ''}},
+      collection.findOneAndUpdate({swarmId: swarmId, claimedBy: userId}, {$set: {claimed: false, claimedBy: ''}},
+        function (error, res) {
+          if (error) {
+            response({'error': res});
+          } else {
+            response(res);
+          }
+        })
+    })
+  },
+  swarmRetrieved(data, response) {
+    // { userId: 'e0c66481-9f4c-4c0c-b7d0-d9d1ba7b455f', swarmId: '1198acc3-c861-41a3-8ea3-6a06e0ca530c' }
+    const {userId, swarmId} = data;
+    return client.connect(() => {
+      const db = client.db(dbName);
+      const collection = db.collection('swarms');
+      collection.findOneAndUpdate({swarmId}, {$set: {retrieved: true, retrievedBy: userId}},
+        function (error, res) {
+          if (error) {
+            response({'error': res});
+          } else {
+            response(res);
+          }
+        })
+    })
+  },
+  addSwarmRetrievalZones(data, response) {
+    // { userId: 'e0c66481-9f4c-4c0c-b7d0-d9d1ba7b455f', zones: [] }
+    const {userId, zones} = data;
+    return client.connect(() => {
+      const db = client.db(dbName);
+      const collection = db.collection('users');
+      collection.findOneAndUpdate({userId}, {$set: {swarmRetriever: true, swarmZones: zones}},
         function (error, res) {
           if (error) {
             response({'error': res});

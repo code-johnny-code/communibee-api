@@ -8,31 +8,45 @@ const client = new MongoClient(process.env.DB_URL, { useNewUrlParser: true, auth
   }});
 const dbName = process.env.DB_NAME;
 
-const makeGeoJSON = (name, lat, long) => {
-  return {
-    "type": "FeatureCollection",
-    "features": [
-      {
-        "type": "Feature",
-        "properties": {"name": name, "hiveId": uuidv4()},
-        "geometry": {
-          "type": "Point",
-          "coordinates": [
-            long,
-            lat
-          ]
-        }
-      }
-    ]
-  }
-};
-
 module.exports = {
-  registerNewUser(data, response) {
+  addUser(data, response) {
+    // { name: 'John R', email: 'boop@doopadoop.boop' }
+    const {name, email} = data;
     client.connect(() => {
       const db = client.db(dbName);
       const collection = db.collection('users');
-      return collection.insertOne({userId: data.userId, name: data.name, joined: Date.now()},
+      return collection.insertOne({
+          userId: uuidv4(),
+          name: name,
+          email: email,
+          joined: Date.now(),
+        },
+        function (error, res) {
+          if (error) {
+            response({'error': res});
+          } else {
+            response(res);
+          }
+        })
+    })
+  },
+  addApiary(data, response) {
+    // { userId: 'e0c66481-9f4c-4c0c-b7d0-d9d1ba7b455f', name: 'Serenity Valley Apiary', lat: 4601968.398754628, long: -10065674.366864335 }
+    const {userId, name, lat, long} = data;
+    client.connect(() => {
+      const db = client.db(dbName);
+      const collection = db.collection('apiaries');
+      const apiaryId = uuidv4();
+      const h3Cell = h3.geoToH3(lat, long, 6);
+      return collection.insertOne({
+          userId: userId,
+          apiaryId: apiaryId,
+          name: name,
+          location: {lat, long},
+          h3: h3Cell,
+          created: Date.now(),
+          hives: []
+        },
         function (error, res) {
           if (error) {
             response({'error': res});
@@ -43,16 +57,66 @@ module.exports = {
     })
   },
   addHive(data, response) {
+    // { apiaryId: '6dde6060-c98e-4955-b4cd-70475ef4b84d', name: 'Bee Arthur & the Golden Girls', species: 'Italian', issues: ['Small Hive Beetles'] }
+    client.connect(() => {
+      const {apiaryId, name, species, issues} = data;
+      const db = client.db(dbName);
+      const hiveId = uuidv4();
+      const collection = db.collection('apiaries');
+      const hiveDetails = {
+        name: name,
+        species: species,
+        issues: issues,
+        hiveId: hiveId,
+      };
+      collection.findOneAndUpdate({apiaryId: apiaryId}, {$push: {hives: hiveDetails}},
+        function (error, res) {
+          if (error) {
+            response({'error': res});
+          } else {
+            response(res);
+          }
+        })
+    })
+  },
+  getApiaries(data, response) {
+    const {userId} = data.query;
+    return client.connect(() => {
+      const db = client.db(dbName);
+      const collection = db.collection('apiaries');
+      collection.find().toArray(function(err, items) {
+        if (err) {
+          response({'error': err});
+        } else {
+          const hiveResponse = {
+            myApiaries: items.filter(apiary => userId === apiary.userId),
+            otherApiaries: items.filter(apiary => userId !== apiary.userId).map(apiary => {
+              delete apiary.location;
+              delete apiary.userId;
+              return apiary;
+            })
+          };
+          response(hiveResponse);
+        }
+      });
+    });
+  },
+  addSwarm(data, response) {
+    // { userId: 'e0c66481-9f4c-4c0c-b7d0-d9d1ba7b455f', lat: 4601968.398754628, long: -10065674.366864335, contactInfo: 'John, 314-111-1111', firstSeen: , distanceFromGround: 10}
+    const {lat, long, userId, firstSeen, distanceFromGround, contactInfo} = data;
     client.connect(() => {
       const db = client.db(dbName);
-      const collection = db.collection('hives');
-      const h3Cell = h3.geoToH3(data.lat, data.long, 6);
+      const collection = db.collection('swarms');
+      const h3Cell = h3.geoToH3(lat, long, 6);
       const recordToSave = {
-        userId: data.userId,
-        geojson: makeGeoJSON(data.name, data.lat, data.long),
+        swarmId: uuidv4(),
+        userId: userId,
+        location: {lat, long},
         h3: h3Cell,
-        h3Geom: h3.h3ToGeoBoundary(h3Cell, true),
-        issues: []
+        reported: Date.now(),
+        firstSeen: firstSeen,
+        distanceFromGround: distanceFromGround,
+        contactInfo: contactInfo,
       };
       collection.insertOne(recordToSave,
         function (error, res) {
@@ -64,32 +128,20 @@ module.exports = {
         })
     })
   },
-  updateHive(data, response) {
-    client.connect(() => {
-      const {hiveId} = data;
-      const db = client.db(dbName);
-      const collection = db.collection('hives');
-      return collection.findOneAndUpdate({hiveId: hiveId},
-        function (error, res) {
-          if (error) {
-            response({'error': res});
-          } else {
-            response(res);
-          }
-        })
-    })
-  },
-  getHives(data, response) {
+  getSwarms(data, response) {
     return client.connect(() => {
       const db = client.db(dbName);
-      const collection = db.collection('hives');
+      const collection = db.collection('swarms');
       collection.find().toArray(function(err, items) {
         if (err) {
           response({'error': err});
         } else {
-          response(items);
+          const responseItems = items.map(swarm => {
+            return swarm;
+          });
+          response(responseItems);
         }
       });
     });
-  }
+  },
 };

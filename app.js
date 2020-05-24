@@ -20,19 +20,31 @@ app.use(function (req, res, next) {
 
 app.get('/', (req, res) => res.send('Hello World!'));
 
-app.get('/hives', (req, res) => {
-  Mongo.getHives(req.body, (results) => res.send(results))
+app.get('/apiaries', (req, res) => {
+  Mongo.getApiaries(req, (results) => res.send(results))
 });
-app.post('/registerNewUser', (req, res) => {
-  Mongo.registerNewUser(req.body, (results) => res.send(results))
+app.post('/addUser', (req, res) => {
+  Mongo.addUser(req.body, (results) => res.send(results))
+});
+
+app.post('/addApiary', (req, res) => {
+  Mongo.addApiary(req.body, (results) => res.send(results))
 });
 
 app.post('/addHive', (req, res) => {
   Mongo.addHive(req.body, (results) => res.send(results))
 });
 
-app.post('/updateHive', (req, res) => {
-  Mongo.updateHive(req.body, (results) => res.send(results))
+// app.post('/updateHive', (req, res) => {
+//   Mongo.updateHive(req.body, (results) => res.send(results))
+// });
+
+app.post('/addSwarm', (req, res) => {
+  Mongo.addSwarm(req.body, (results) => res.send(results))
+});
+
+app.get('/getSwarms', (req, res) => {
+  Mongo.getSwarms(req.body, (results) => res.send(results))
 });
 
 app.listen(process.env.PORT || 5000, () => console.log(`Example app listening at http://localhost:${port}`));

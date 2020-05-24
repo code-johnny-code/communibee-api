@@ -47,4 +47,12 @@ app.get('/getSwarms', (req, res) => {
   Mongo.getSwarms(req.body, (results) => res.send(results))
 });
 
+app.post('/claimSwarm', (req, res) => {
+  Mongo.claimSwarm(req.body, (results) => res.send(results))
+});
+
+app.post('/unclaimSwarm', (req, res) => {
+  Mongo.unclaimSwarm(req.body, (results) => res.send(results))
+});
+
 app.listen(process.env.PORT || 5000, () => console.log(`Example app listening at http://localhost:${port}`));

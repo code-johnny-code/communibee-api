@@ -102,7 +102,7 @@ module.exports = {
     });
   },
   addSwarm(data, response) {
-    // { userId: 'e0c66481-9f4c-4c0c-b7d0-d9d1ba7b455f', lat: 4601968.398754628, long: -10065674.366864335, contactInfo: 'John, 314-111-1111', firstSeen: , distanceFromGround: 10}
+    // { userId: 'e0c66481-9f4c-4c0c-b7d0-d9d1ba7b455f', lat: 4601968.398754628, long: -10065674.366864335, contactInfo: 'John, 314-111-1111', firstSeen: , distanceFromGround: 10 }
     const {lat, long, userId, firstSeen, distanceFromGround, contactInfo} = data;
     client.connect(() => {
       const db = client.db(dbName);
@@ -117,6 +117,7 @@ module.exports = {
         firstSeen: firstSeen,
         distanceFromGround: distanceFromGround,
         contactInfo: contactInfo,
+        claimed: false,
       };
       collection.insertOne(recordToSave,
         function (error, res) {
@@ -144,4 +145,36 @@ module.exports = {
       });
     });
   },
+  claimSwarm(data, response) {
+    // { userId: 'e0c66481-9f4c-4c0c-b7d0-d9d1ba7b455f', swarmId: '1198acc3-c861-41a3-8ea3-6a06e0ca530c' }
+    const {swarmId, userId} = data;
+    return client.connect(() => {
+      const db = client.db(dbName);
+      const collection = db.collection('swarms');
+      collection.findOneAndUpdate({swarmId}, {$set: {claimed: true, claimedBy: userId}},
+        function (error, res) {
+        if (error) {
+          response({'error': res});
+        } else {
+          response(res);
+        }
+      })
+    })
+  },
+  unclaimSwarm(data, response) {
+    // { swarmId: '1198acc3-c861-41a3-8ea3-6a06e0ca530c' }
+    const {swarmId, userId} = data;
+    return client.connect(() => {
+      const db = client.db(dbName);
+      const collection = db.collection('swarms');
+      collection.findOneAndUpdate({swarmId}, {$set: {claimed: false, claimedBy: ''}},
+        function (error, res) {
+          if (error) {
+            response({'error': res});
+          } else {
+            response(res);
+          }
+        })
+    })
+  }
 };

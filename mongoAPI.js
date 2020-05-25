@@ -1,4 +1,5 @@
 require('dotenv').config();
+const turf = require('@turf/turf');
 const h3 = require("h3-js");
 const { v4: uuidv4 } = require('uuid');
 const MongoClient = require('mongodb').MongoClient;
@@ -54,15 +55,70 @@ module.exports = {
       const collection = db.collection('apiaries');
       const apiaryId = uuidv4();
       const h3Cell = h3.geoToH3(lat, long, 6);
-      return collection.insertOne({
-          userId: userId,
-          apiaryId: apiaryId,
-          name: name,
-          location: {lat, long},
-          h3: h3Cell,
-          created: Date.now(),
-          hives: []
-        },
+      const cellPlusNeighbors = h3.kRing(h3Cell, 1);
+      const payload = {
+        userId: userId,
+        apiaryId: apiaryId,
+        name: name,
+        location: {lat, long},
+        h3: h3Cell,
+        created: Date.now(),
+        hives: [],
+        deleted: false,
+        nearbyApiaries: 0,
+      };
+      collection.find({h3: {$in: cellPlusNeighbors}}).toArray(function(err, apiaries) {
+        if (err) {
+          response({'error': err});
+        } else {
+          // Add newest apiary to list of apiaries
+          apiaries.push(payload);
+          // TODO: Find a way to run these calculations in a way that isn't so criminally inefficient.
+          // Calculate distance between each apiary
+          apiaries.forEach(apiary1 => {
+            // Reset the nearbyApiaries count
+            apiary1.nearbyApiaries = 0;
+            apiaries.forEach(apiary2 => {
+              if (apiary1.apiaryId !== apiary2.apiaryId) {
+                // Convert coordinates to WGS84 so turf can measure distance
+                const firstLocConverted = turf.toWgs84([apiary1.location.long, apiary1.location.lat]);
+                const secondLocConverted = turf.toWgs84([apiary2.location.long, apiary2.location.lat]);
+                const calculatedDistance = turf.distance(firstLocConverted, secondLocConverted, {units: 'miles'});
+                // Increment the count each time an apiary is within 2 miles
+                if (calculatedDistance < 2) { apiary1.nearbyApiaries++ }
+              }
+            });
+            // Update nonApiaryHivesNearby count for all apiaries
+            collection.findOneAndUpdate({apiaryId: apiary1.apiaryId}, {$set: {nearbyApiaries: apiary1.nearbyApiaries}})
+          });
+          return collection.insertOne(payload,
+            function (error, res) {
+              if (error) {
+                response({'error': res});
+              } else {
+                response(res);
+              }
+            })
+        }
+      });
+    })
+  },
+  addHive(data, response) {
+    // { userId: 'e0c66481-9f4c-4c0c-b7d0-d9d1ba7b455f', apiaryId: '6dde6060-c98e-4955-b4cd-70475ef4b84d', name: 'Bee Arthur & the Golden Girls', species: 'Italian', issues: ['Small Hive Beetles'] }
+    client.connect(() => {
+      const {userId, apiaryId, name, species, issues} = data;
+      const db = client.db(dbName);
+      const hiveId = uuidv4();
+      const collection = db.collection('apiaries');
+      const hiveDetails = {
+        name,
+        userId,
+        species,
+        issues,
+        hiveId,
+        deleted: false,
+      };
+      collection.findOneAndUpdate({apiaryId, userId}, {$push: {hives: hiveDetails}},
         function (error, res) {
           if (error) {
             response({'error': res});
@@ -72,20 +128,13 @@ module.exports = {
         })
     })
   },
-  addHive(data, response) {
-    // { apiaryId: '6dde6060-c98e-4955-b4cd-70475ef4b84d', name: 'Bee Arthur & the Golden Girls', species: 'Italian', issues: ['Small Hive Beetles'] }
+  removeHive(data, response) {
+    // { apiaryId: '6dde6060-c98e-4955-b4cd-70475ef4b84d', hiveId: 'f4154a05-b59a-46b3-9359-3a9a293723db', userId: 'e0c66481-9f4c-4c0c-b7d0-d9d1ba7b455f' }
     client.connect(() => {
-      const {apiaryId, name, species, issues} = data;
+      const {apiaryId, userId, hiveId} = data;
       const db = client.db(dbName);
-      const hiveId = uuidv4();
       const collection = db.collection('apiaries');
-      const hiveDetails = {
-        name: name,
-        species: species,
-        issues: issues,
-        hiveId: hiveId,
-      };
-      collection.findOneAndUpdate({apiaryId: apiaryId}, {$push: {hives: hiveDetails}},
+      collection.updateOne({apiaryId, userId, hives: {$elemMatch: {hiveId}}}, {$set: {"hives.$.deleted": true}},
         function (error, res) {
           if (error) {
             response({'error': res});

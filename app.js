@@ -44,9 +44,9 @@ app.post('/addHive', (req, res) => {
   Mongo.addHive(req.body, (results) => res.send(results))
 });
 
-// app.post('/updateHive', (req, res) => {
-//   Mongo.updateHive(req.body, (results) => res.send(results))
-// });
+app.post('/removeHive', (req, res) => {
+  Mongo.removeHive(req.body, (results) => res.send(results))
+});
 
 app.post('/addSwarm', (req, res) => {
   Mongo.addSwarm(req.body, (results) => res.send(results))

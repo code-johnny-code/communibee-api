@@ -10,13 +10,16 @@ const client = new MongoClient(process.env.DB_URL, { useNewUrlParser: true, auth
 const dbName = process.env.DB_NAME;
 
 const updateNearbyApiaryCountAndIssues = (h3Cell) => {
+  // Get the h3 cell and all of its neighboring cells
   const cellPlusNeighbors = h3.kRing(h3Cell, 1);
   const db = client.db(dbName);
   const collection = db.collection('apiaries');
+  // Get records for each apiary within the h3 cells
   collection.find({h3: {$in: cellPlusNeighbors}, deleted: false}).toArray(function(err, apiaries) {
     if (err) {
       return {'error': err};
     } else {
+      // TODO: Make the distance calculation between each apiary not so horribly inefficient
       // Calculate distance between each apiary
       apiaries.forEach(apiary1 => {
         // Reset the nearbyApiaries count and nearbyIssues
@@ -110,8 +113,8 @@ module.exports = {
             updateNearbyApiaryCountAndIssues(h3Cell);
             response(res);
           }
-        })
-      });
+      })
+    });
   },
   addHive(data, response) {
     // { userId: 'e0c66481-9f4c-4c0c-b7d0-d9d1ba7b455f', apiaryId: '6dde6060-c98e-4955-b4cd-70475ef4b84d', name: 'Bee Arthur & the Golden Girls', species: 'Italian', issues: ['Small Hive Beetles'] }

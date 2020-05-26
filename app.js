@@ -4,7 +4,10 @@ const cors = require('cors');
 const port = 3000;
 const Mongo = require('./mongoAPI');
 const bodyParser = require('body-parser');
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./swagger.json');
 
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use(cors());
 app.use( bodyParser.json() );       // to support JSON-encoded bodies
 app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
@@ -66,6 +69,10 @@ app.post('/unclaimSwarm', (req, res) => {
 
 app.post('/swarmRetrieved', (req, res) => {
   Mongo.swarmRetrieved(req.body, (results) => res.send(results))
+});
+
+app.post('/autonomousSwarmRetrieved', (req, res) => {
+  Mongo.autonomousSwarmRetrieved(req.body, (results) => res.send(results))
 });
 
 app.listen(process.env.PORT || 5000, () => console.log(`Example app listening at http://localhost:${port}`));

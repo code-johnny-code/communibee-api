@@ -1,0 +1,409 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Communibee",
+    "description": "The API backing Communibee!",
+    "version": "1.0"
+  },
+  "produces": ["application/json"],
+  "paths": {
+    "/apiaries": {
+      "get": {
+        "tags": ["Apiaries"],
+        "description": "Get the details of the user's apiaries, as well as H3 cell IDs of others",
+        "parameters": [{
+          "name": "Authorization",
+          "type": "string",
+          "in": "header",
+          "required": true
+        },{
+          "name": "userId",
+          "type": "string",
+          "in": "query",
+          "required": true
+        }],
+        "responses": {}
+      }
+    },
+    "/addApiary": {
+      "post": {
+        "tags": ["Apiaries"],
+        "description": "Add a new Apiary",
+        "parameters": [{
+          "name": "Authorization",
+          "type": "string",
+          "in": "header",
+          "required": true
+        },{
+          "name": "userId",
+          "type": "string",
+          "in": "formData",
+          "required": true
+        }, {
+          "name": "name",
+          "description": "Name of the Apiary",
+          "type": "string",
+          "in": "formData",
+          "required": true
+        },{
+          "name": "lat",
+          "description": "Latitude of the Apiary",
+          "type": "number",
+          "in": "formData",
+          "required": true
+        },{
+          "name": "long",
+          "description": "Longitude of the Apiary",
+          "type": "number",
+          "in": "formData",
+          "required": true
+        }],
+        "responses": {}
+      }
+    },
+    "/addUser": {
+      "post": {
+        "tags": ["User Admin"],
+        "description": "Add a new User Record",
+        "parameters": [{
+          "name": "Authorization",
+          "type": "string",
+          "in": "header",
+          "required": true
+        },{
+          "name": "name",
+          "type": "string",
+          "in": "formData",
+          "required": true
+        }, {
+          "name": "email",
+          "type": "string",
+          "in": "formData",
+          "required": true
+        }],
+        "responses": {}
+      }
+    },
+    "/addHive": {
+      "post": {
+        "tags": ["Hives"],
+        "description": "Add a new Hive to an Apiary",
+        "parameters": [{
+          "name": "Authorization",
+          "type": "string",
+          "in": "header",
+          "required": true
+        },{
+          "name": "userId",
+          "description": "ID of the User adding the Hive to the Apiary. This User must be the same one that added the Apiary.",
+          "type": "string",
+          "in": "formData",
+          "required": true
+        },{
+          "name": "apiaryId",
+          "description": "ID of the Apiary where the Hive is located",
+          "type": "string",
+          "in": "formData",
+          "required": true
+        }, {
+          "name": "name",
+          "description": "Name of the Hive",
+          "type": "string",
+          "in": "formData",
+          "required": true
+        }, {
+          "name": "species",
+          "description": "Species of the Bees",
+          "type": "string",
+          "in": "formData",
+          "required": true
+        }, {
+          "name": "issues",
+          "description": "Pests or Diseases currently present in the Hive",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "in": "formData",
+          "required": true
+        }],
+        "responses": {}
+      }
+    },
+    "/removeHive": {
+      "post": {
+        "tags": ["Hives"],
+        "description": "Remove a Hive from an Apiary (Soft delete)",
+        "parameters": [{
+          "name": "Authorization",
+          "type": "string",
+          "in": "header",
+          "required": true
+        },{
+          "name": "userId",
+          "description": "ID of the User removing the Hive to the Apiary. This User must be the same one that added the Apiary.",
+          "type": "string",
+          "in": "formData",
+          "required": true
+        },{
+          "name": "apiaryId",
+          "description": "ID of the Apiary where the Hive is located",
+          "type": "string",
+          "in": "formData",
+          "required": true
+        }, {
+          "name": "hiveId",
+          "description": "ID of the Hive",
+          "type": "string",
+          "in": "formData",
+          "required": true
+        }],
+        "responses": {}
+      }
+    },
+    "/getUserInfo": {
+      "get": {
+        "tags": ["User Admin"],
+        "description": "Get the User's Record",
+        "parameters": [{
+          "name": "Authorization",
+          "type": "string",
+          "in": "header",
+          "required": true
+        },{
+          "name": "userId",
+          "type": "string",
+          "in": "query",
+          "required": true
+        }],
+        "responses": {}
+      }
+    },
+    "/addSwarm": {
+      "post": {
+        "tags": ["Swarms"],
+        "description": "Report the current location of a Swarm",
+        "parameters": [{
+          "name": "Authorization",
+          "type": "string",
+          "in": "header",
+          "required": true
+        },{
+          "name": "userId",
+          "description": "ID of the User reporting the Swarm",
+          "type": "string",
+          "in": "formData",
+          "required": true
+        }, {
+          "name": "firstSeen",
+          "description": "Timestamp of when the Swarm was first discovered",
+          "type": "number",
+          "in": "formData",
+          "required": true
+        },{
+          "name": "lat",
+          "description": "Latitude of the Swarm",
+          "type": "number",
+          "in": "formData",
+          "required": true
+        },{
+          "name": "long",
+          "description": "Longitude of the Swarm",
+          "type": "number",
+          "in": "formData",
+          "required": true
+        }, {
+          "name": "distanceFromGround",
+          "description": "Distance (in feet) from the ground to the Swarm",
+          "type": "number",
+          "in": "formData",
+          "required": true
+        }, {
+          "name": "contactInfo",
+          "description": "Contact Info for person reporting Swarm. Shared with person who claims the Swarm.",
+          "type": "string",
+          "in": "formData",
+          "required": true
+        }],
+        "responses": {}
+      }
+    },
+    "/getSwarms": {
+      "get": {
+        "tags": ["Swarms"],
+        "description": "Get the active Swarm locations and details.",
+        "parameters": [{
+          "name": "Authorization",
+          "type": "string",
+          "in": "header",
+          "required": true
+        }],
+        "responses": {}
+      }
+    },
+    "/claimSwarm": {
+      "post": {
+        "tags": ["Swarms"],
+        "description": "Claim a Swarm for retrieval. Essentially calling dibs on a Swarm.",
+        "parameters": [{
+          "name": "Authorization",
+          "type": "string",
+          "in": "header",
+          "required": true
+        },{
+          "name": "userId",
+          "description": "ID of the User claiming the Swarm",
+          "type": "string",
+          "in": "formData",
+          "required": true
+        }, {
+          "name": "swarmId",
+          "description": "ID of the Swarm that is being claimed",
+          "type": "number",
+          "in": "formData",
+          "required": true
+        }],
+        "responses": {}
+      }
+    },
+    "/unclaimSwarm": {
+      "post": {
+        "tags": ["Swarms"],
+        "description": "Relinquish claim of a Swarm. Used if you have previously claimed a Swarm, but cannot go to collect it.",
+        "parameters": [{
+          "name": "Authorization",
+          "type": "string",
+          "in": "header",
+          "required": true
+        },{
+          "name": "userId",
+          "description": "ID of the User relinquishing the Swarm",
+          "type": "string",
+          "in": "formData",
+          "required": true
+        }, {
+          "name": "swarmId",
+          "description": "ID of the Swarm that is being relinquished",
+          "type": "number",
+          "in": "formData",
+          "required": true
+        }],
+        "responses": {}
+      }
+    },
+    "/swarmRetrieved": {
+      "post": {
+        "tags": ["Swarms"],
+        "description": "Report the successful collection of a reported Swarm.",
+        "parameters": [{
+          "name": "Authorization",
+          "type": "string",
+          "in": "header",
+          "required": true
+        },{
+          "name": "userId",
+          "description": "ID of the User who collected the Swarm",
+          "type": "string",
+          "in": "formData",
+          "required": true
+        },{
+          "name": "swarmId",
+          "description": "ID of the Swarm that was collected",
+          "type": "number",
+          "in": "formData",
+          "required": true
+        },{
+          "name": "timeCollected",
+          "description": "Time that the Swarm was collected",
+          "type": "number",
+          "in": "formData",
+          "required": true
+        }],
+        "responses": {}
+      }
+    },
+    "/autonomousSwarmRetrieved": {
+      "post": {
+        "tags": ["Swarms"],
+        "description": "Report the successful collection of an unreported Swarm.",
+        "parameters": [{
+          "name": "Authorization",
+          "type": "string",
+          "in": "header",
+          "required": true
+        },{
+          "name": "userId",
+          "description": "ID of the User reporting the Swarm collection",
+          "type": "string",
+          "in": "formData",
+          "required": true
+        },{
+          "name": "retrievedByUser",
+          "description": "Was the Swarm collected by the User reporting it?",
+          "type": "boolean",
+          "in": "formData",
+          "required": true
+        },{
+          "name": "firstSeen",
+          "description": "Timestamp of when the Swarm was first discovered",
+          "type": "number",
+          "in": "formData",
+          "required": true
+        },{
+          "name": "timeCollected",
+          "description": "Time that the Swarm was collected",
+          "type": "number",
+          "in": "formData",
+          "required": true
+        },{
+          "name": "lat",
+          "description": "Latitude of the Swarm",
+          "type": "number",
+          "in": "formData",
+          "required": true
+        },{
+          "name": "long",
+          "description": "Longitude of the Swarm",
+          "type": "number",
+          "in": "formData",
+          "required": true
+        }, {
+          "name": "distanceFromGround",
+          "description": "Distance (in feet) from the ground to the Swarm",
+          "type": "number",
+          "in": "formData",
+          "required": true
+        }],
+        "responses": {}
+      }
+    },
+    "/addSwarmRetrievalZones": {
+      "post": {
+        "tags": ["Swarms"],
+        "description": "Report the successful collection of a reported Swarm.",
+        "parameters": [{
+          "name": "Authorization",
+          "type": "string",
+          "in": "header",
+          "required": true
+        },{
+          "name": "userId",
+          "description": "ID of the User who is volunteering for possible Swarm retrieval",
+          "type": "string",
+          "in": "formData",
+          "required": true
+        },{
+          "name": "zones",
+          "description": "H3 Cell IDs covering areas that the User is possibly willing to visit if Swarms are reported there.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "in": "formData",
+          "required": true
+        }],
+        "responses": {}
+      }
+    }
+  }
+}

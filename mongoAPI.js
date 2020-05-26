@@ -261,12 +261,43 @@ module.exports = {
     })
   },
   swarmRetrieved(data, response) {
-    // { userId: 'e0c66481-9f4c-4c0c-b7d0-d9d1ba7b455f', swarmId: '1198acc3-c861-41a3-8ea3-6a06e0ca530c' }
-    const {userId, swarmId} = data;
+    // { userId: 'e0c66481-9f4c-4c0c-b7d0-d9d1ba7b455f', swarmId: '1198acc3-c861-41a3-8ea3-6a06e0ca530c', timeCollected:  }
+    const {userId, swarmId, timeCollected} = data;
     return client.connect(() => {
       const db = client.db(dbName);
       const collection = db.collection('swarms');
-      collection.findOneAndUpdate({swarmId}, {$set: {retrieved: true, retrievedBy: userId}},
+      collection.findOneAndUpdate({swarmId}, {$set: {retrieved: true, retrievedBy: userId, timeCollected}},
+        function (error, res) {
+          if (error) {
+            response({'error': res});
+          } else {
+            response(res);
+          }
+        })
+    })
+  },
+  autonomousSwarmRetrieved(data, response) {
+    // TODO: Make sure this actually works
+    // { userId: 'e0c66481-9f4c-4c0c-b7d0-d9d1ba7b455f', retrievedByUser: true, firstSeen, timeCollected: , lat: , long: , distanceFromGround: 10 }
+    const {userId, retrievedByUser, firstSeen, timeCollected, lat, long, distanceFromGround} = data;
+    return client.connect(() => {
+      const db = client.db(dbName);
+      const collection = db.collection('swarms');
+      const h3Cell = h3.geoToH3(lat, long, 6);
+      const payload = {
+        swarmId: uuidv4(),
+        source: 'autonomous',
+        userId,
+        retrievedByUser,
+        firstSeen,
+        timeCollected,
+        lat,
+        long,
+        h3Cell,
+        distanceFromGround,
+        retrieved: true
+      };
+      collection.insertOne(payload,
         function (error, res) {
           if (error) {
             response({'error': res});

@@ -9,6 +9,41 @@ const client = new MongoClient(process.env.DB_URL, { useNewUrlParser: true, auth
   }});
 const dbName = process.env.DB_NAME;
 
+const updateNearbyApiaryCountAndIssues = (h3Cell) => {
+  const cellPlusNeighbors = h3.kRing(h3Cell, 1);
+  const db = client.db(dbName);
+  const collection = db.collection('apiaries');
+  collection.find({h3: {$in: cellPlusNeighbors}, deleted: false}).toArray(function(err, apiaries) {
+    if (err) {
+      return {'error': err};
+    } else {
+      // Calculate distance between each apiary
+      apiaries.forEach(apiary1 => {
+        // Reset the nearbyApiaries count and nearbyIssues
+        apiary1.nearbyApiaries = 0;
+        apiary1.nearbyIssues = [];
+        apiaries.forEach(apiary2 => {
+          if (apiary1.apiaryId !== apiary2.apiaryId) {
+            // Convert coordinates to WGS84 so turf can measure distance
+            const firstLocConverted = turf.toWgs84([apiary1.location.long, apiary1.location.lat]);
+            const secondLocConverted = turf.toWgs84([apiary2.location.long, apiary2.location.lat]);
+            const calculatedDistance = turf.distance(firstLocConverted, secondLocConverted, {units: 'miles'});
+            // Increment the count each time an apiary is within 2 miles
+            if (calculatedDistance < 2) {
+              apiary1.nearbyApiaries++;
+              const apiaryIssues = apiary2.hives.filter(hive => !hive.deleted).map(hive => hive.issues).flat();
+              if (apiaryIssues.flat().length) { apiary1.nearbyIssues.push([...new Set(apiaryIssues)]) }
+            }
+          }
+        });
+        apiary1.nearbyIssues = [...new Set(apiary1.nearbyIssues.flat())];
+        // Update nearbyApiaries count and nearbyIssues for all apiaries
+        collection.findOneAndUpdate({apiaryId: apiary1.apiaryId}, {$set: {nearbyApiaries: apiary1.nearbyApiaries, nearbyIssues: apiary1.nearbyIssues}})
+      });
+    }
+  })
+};
+
 module.exports = {
   addUser(data, response) {
     // { name: 'John R', email: 'boop@doopadoop.boop' }
@@ -55,7 +90,6 @@ module.exports = {
       const collection = db.collection('apiaries');
       const apiaryId = uuidv4();
       const h3Cell = h3.geoToH3(lat, long, 6);
-      const cellPlusNeighbors = h3.kRing(h3Cell, 1);
       const payload = {
         userId: userId,
         apiaryId: apiaryId,
@@ -66,42 +100,18 @@ module.exports = {
         hives: [],
         deleted: false,
         nearbyApiaries: 0,
+        nearbyIssues: [],
       };
-      collection.find({h3: {$in: cellPlusNeighbors}}).toArray(function(err, apiaries) {
-        if (err) {
-          response({'error': err});
-        } else {
-          // Add newest apiary to list of apiaries
-          apiaries.push(payload);
-          // TODO: Find a way to run these calculations in a way that isn't so criminally inefficient.
-          // Calculate distance between each apiary
-          apiaries.forEach(apiary1 => {
-            // Reset the nearbyApiaries count
-            apiary1.nearbyApiaries = 0;
-            apiaries.forEach(apiary2 => {
-              if (apiary1.apiaryId !== apiary2.apiaryId) {
-                // Convert coordinates to WGS84 so turf can measure distance
-                const firstLocConverted = turf.toWgs84([apiary1.location.long, apiary1.location.lat]);
-                const secondLocConverted = turf.toWgs84([apiary2.location.long, apiary2.location.lat]);
-                const calculatedDistance = turf.distance(firstLocConverted, secondLocConverted, {units: 'miles'});
-                // Increment the count each time an apiary is within 2 miles
-                if (calculatedDistance < 2) { apiary1.nearbyApiaries++ }
-              }
-            });
-            // Update nonApiaryHivesNearby count for all apiaries
-            collection.findOneAndUpdate({apiaryId: apiary1.apiaryId}, {$set: {nearbyApiaries: apiary1.nearbyApiaries}})
-          });
-          return collection.insertOne(payload,
-            function (error, res) {
-              if (error) {
-                response({'error': res});
-              } else {
-                response(res);
-              }
-            })
-        }
+      return collection.insertOne(payload,
+        function (error, res) {
+          if (error) {
+            response({'error': res});
+          } else {
+            updateNearbyApiaryCountAndIssues(h3Cell);
+            response(res);
+          }
+        })
       });
-    })
   },
   addHive(data, response) {
     // { userId: 'e0c66481-9f4c-4c0c-b7d0-d9d1ba7b455f', apiaryId: '6dde6060-c98e-4955-b4cd-70475ef4b84d', name: 'Bee Arthur & the Golden Girls', species: 'Italian', issues: ['Small Hive Beetles'] }
@@ -123,6 +133,7 @@ module.exports = {
           if (error) {
             response({'error': res});
           } else {
+            updateNearbyApiaryCountAndIssues(res.value.h3);
             response(res);
           }
         })
@@ -139,6 +150,9 @@ module.exports = {
           if (error) {
             response({'error': res});
           } else {
+            collection.findOne({apiaryId}, (err, apiary) => {
+              updateNearbyApiaryCountAndIssues(apiary.h3)
+            });
             response(res);
           }
         })

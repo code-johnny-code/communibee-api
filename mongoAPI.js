@@ -166,16 +166,16 @@ module.exports = {
     return client.connect(() => {
       const db = client.db(dbName);
       const collection = db.collection('apiaries');
-      collection.find().toArray(function(err, items) {
+      collection.find({deleted: false}).toArray(function(err, items) {
         if (err) {
           response({'error': err});
         } else {
           const hiveResponse = {
             myApiaries: items.filter(apiary => userId === apiary.userId),
             otherApiaries: items.filter(apiary => userId !== apiary.userId).map(apiary => {
-              delete apiary.location;
-              delete apiary.userId;
-              return apiary;
+              return {
+                h3: apiary.h3,
+              };
             })
           };
           response(hiveResponse);

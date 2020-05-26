@@ -8,6 +8,46 @@ const client = new MongoClient(process.env.DB_URL, { useNewUrlParser: true, auth
     password: process.env.DB_PW
   }});
 const dbName = process.env.DB_NAME;
+const nodemailer = require('nodemailer');
+
+const notifySwarmCatchers = (h3Cell, POC, details) => {
+  const db = client.db(dbName);
+  const collection = db.collection('users');
+  collection.find({swarmCatcher: true, swarmZones: h3Cell}).toArray((err, catchers) => {
+    catchers.forEach(catcher => {
+      sendEmail(catcher.email, POC, details)
+    })
+  });
+};
+
+const sendEmail = (catcherEmail, swarmPOC, swarmDetails) => {
+  const transporter = nodemailer.createTransport({
+    service: process.env.EMAIL_SERVICE,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PW
+    }
+  });
+  const locationCoords = turf.toWgs84([swarmDetails.long, swarmDetails.lat]);
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+      to: catcherEmail,
+      subject: 'New Bee Swarm in your area!',
+      text: `A new Swarm has been reported in your area! \n \n` +
+        `DETAILS \n \n` +
+        `Location: https://www.google.com/maps/@${locationCoords[1]},${locationCoords[0]},20z \n \n` +
+        `Distance From Ground: ${swarmDetails.distanceFromGround} \n \n` +
+        `Contact: ${swarmPOC} \n \n` +
+        `Other Beekeepers have probably received this alert as well, so be sure to "claim" it on Communibee!`
+  };
+  transporter.sendMail(mailOptions, function(error, info){
+    if (error) {
+      console.log(error);
+    } else {
+      console.log('Email sent: ' + info.response);
+    }
+  });
+};
 
 const updateNearbyApiaryCountAndIssues = (h3Cell) => {
   // Get the h3 cell and all of its neighboring cells
@@ -58,7 +98,7 @@ module.exports = {
           userId: uuidv4(),
           name: name,
           email: email,
-          swarmRetriever: false,
+          swarmCatcher: false,
           joined: Date.now(),
         },
         function (error, res) {
@@ -202,6 +242,7 @@ module.exports = {
         claimed: false,
         retrieved: false,
       };
+      notifySwarmCatchers(h3Cell, contactInfo, {lat, long, distanceFromGround});
       collection.insertOne(recordToSave,
         function (error, res) {
           if (error) {
@@ -313,7 +354,7 @@ module.exports = {
     return client.connect(() => {
       const db = client.db(dbName);
       const collection = db.collection('users');
-      collection.findOneAndUpdate({userId}, {$set: {swarmRetriever: true, swarmZones: zones}},
+      collection.findOneAndUpdate({userId}, {$set: {swarmCatcher: true, swarmZones: zones}},
         function (error, res) {
           if (error) {
             response({'error': res});
